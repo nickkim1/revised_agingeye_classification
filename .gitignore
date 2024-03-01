@@ -1,0 +1,15 @@
+/bassetenv
+/4-saved
+/0-refs
+*.pyc
+*.xlsx
+*.gtf
+*.fasta
+*.fasta.fai
+*.fai
+*.bed
+*.fa
+*.txt
+*.pc
+*.csv
+*.pth
