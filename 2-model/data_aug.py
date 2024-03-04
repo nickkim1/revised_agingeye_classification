@@ -3,9 +3,11 @@ import numpy as np
 
 # class for augmenting the initial dataset, because the model isn't learning anything 
 class DataAugmentation():
+   
     # don't want to do anything more  
     def __init__(self):
         pass 
+    
     def invert_sequence(self, sequence_tensor:torch.tensor):
         return torch.flip(sequence_tensor, [1])
     
@@ -33,4 +35,3 @@ class DataAugmentation():
 test_class = DataAugmentation()
 seq = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 0]]).reshape(4, 3)
 reverse_complemented_seq = test_class.reverse_complement_sequence(seq) # <- [A, T, C] => [G, A, T]
-# print('after', reverse_complemented_seq)
