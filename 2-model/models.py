@@ -13,6 +13,7 @@ import numpy as np
 import time as time
 import argparse as ap
 import data_aug as aug
+import math
 
 
 # sacrifices spatial relationships, but probably a decent baseline to use  
@@ -72,6 +73,7 @@ class SimpleCNN(nn.Module):
     
     def calculate_flattened_size(self, simple_config:dict, model_architecture): 
         list_of_layers = [a.strip() for a in model_architecture.split(",")]
+        # print('list of layers', list_of_layers)
         L_in = 0
         # this only works since the essential formula for mp and also conv are like the same 
         layer_inout_size_queue = collections.deque([])
@@ -84,12 +86,17 @@ class SimpleCNN(nn.Module):
                     L_in = layer_inout_size_queue.popleft()
                 # you should've hit a convolutional layer before this so pop left
                 L_out_new = self.calculate_cnn_mp_output_size(L_in, simple_config, layer)
+                # print('L_out_new', L_out_new)
                 # print(L_out_new, simple_config[layer])
                 layer_inout_size_queue.append(L_out_new)
         # for the purposes of this prj ig this -2 assumption is safe. Cout should be prev convolutional layer's output size 
         final_input = simple_config[list_of_layers[len(list_of_layers)-2]]['Cout']
         final_output = layer_inout_size_queue.popleft()
+        # print('(input, output)', final_input, final_output)
         return final_input * final_output
     
     def calculate_cnn_mp_output_size(self, L_in, simple_config, layer):
-        return int((L_in + ((2 * simple_config[layer]['padding']) + (-1 * simple_config[layer]['dilation'] * (simple_config[layer]['kernel_size'] - 1))) - 1) / simple_config[layer]['stride'] + 1)
+        padding, dilation, kernel_size, stride = simple_config[layer]['padding'], simple_config[layer]['dilation'], simple_config[layer]['kernel_size'], simple_config[layer]['stride']
+        L_out_numerator = L_in + 2 * padding - dilation * (kernel_size - 1) - 1
+        L_out_denominator = stride
+        return math.floor(L_out_numerator / L_out_denominator) + 1 

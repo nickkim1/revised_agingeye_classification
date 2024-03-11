@@ -18,9 +18,10 @@ parser = ap.ArgumentParser(prog='This program runs the models')
 parser.add_argument('-primarymodel', type=str, help='Input model type')
 parser.add_argument('-trainfile', type=str, help='Input filepath to the training data', nargs=1)
 parser.add_argument('-testfile', type=str, help='Input filepath to the testing data', nargs=1)
-parser.add_argument('-seqlen', type=int, help='Input length of the sequences in your data', nargs=1)
+parser.add_argument('-seqlen', type=int, help='Input length of the sequences in your data')
 parser.add_argument('-optim', type=str, help='Input optimizer type')
 parser.add_argument('-loss', type=str, help='Input loss type')
+parser.add_argument('-batchsize',type=int, help='Input batch size')
 args = vars(parser.parse_args())
 
 # load in various parameters from the command line 
@@ -29,8 +30,9 @@ train_filepath = args['trainfile'][0]
 test_filepath = args['testfile'][0]
 optim = args['optim']
 loss = args['loss']
-seqlen = args['seqlen'][0]
-settings = populate_settings(train_filepath, test_filepath, seqlen, loss, optim, model_type)
+seqlen = args['seqlen']
+batch_size = args['batchsize']
+settings = populate_settings(train_filepath, test_filepath, seqlen, loss, optim, model_type, batch_size)
 
 # read in the data 
 train_data = pd.read_csv(settings['data']['train'], header=None)
@@ -107,6 +109,7 @@ def train_model():
     
     # keep track of the parameters with this dictionary 
     train_log = {'training_loss_per_epoch':[], 'training_accuracy_per_epoch':[]} 
+    test_log = {'testing_loss_per_epoch':[], 'testing_accuracy_per_epoch': []}
 
     for epoch in range(num_epochs):  
 
@@ -129,7 +132,6 @@ def train_model():
             # assume the first row is the labels? 
             labels = labels.type(torch.float32)
             labels = labels.to(device) 
-            model.to(device) 
             predicted = model(samples) 
             loss = criterion(predicted, labels) 
             t_loss_per_batch.append(loss.item()) 
@@ -147,65 +149,67 @@ def train_model():
 
             # print message for every batch 
             if (i+1) % n_batches == 0: # -- this is where the i term above is used in for loop
-                print (f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{int(n_total_steps)}], Loss: {loss.item():.4f}')
+                print (f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{int(n_total_steps)}]')
         
         # insert the AVERAGE batch training loss -> log. technically could use total_batches here but opted not to
         t_loss = sum(t_loss_per_batch) / len(t_loss_per_batch)
         train_log['training_loss_per_epoch'].append(t_loss)
+        print('Train Loss: ', t_loss)
         t_accuracy = sum(t_accuracy_per_batch) / len(t_accuracy_per_batch)
         print('Training Accuracy: ', t_accuracy)
         train_log['training_accuracy_per_epoch'].append(t_accuracy)
 
-    # save the model's params after fully training it 
-    PATH = '../4-saved/basset_params.pth'
-    torch.save(model.state_dict(), PATH)
+        # save the model's params after fully training it 
+        PATH = '../4-saved/basset_params.pth'
+        torch.save(model.state_dict(), PATH)
+
+        # run the model on the testing data after each training epoch  
+        test_model(PATH, test_log)
 
     # return the log of loss values 
-    return train_log 
+    return train_log, test_log
 
 # test the model - load in saved params from specified PATH
-def test_model(PATH):
+def test_model(PATH, test_log):
     model.load_state_dict(torch.load(PATH)) 
 
     # switch to eval mode to switch off layers like dropout
     model.eval() 
-
-    test_log = {'testing_loss_per_epoch':[], 'testing_accuracy_per_epoch': []}
     
     with torch.no_grad():
-        for epoch in range(num_epochs):
-            testing_loss_per_batch = []
-            testing_accuracy_per_batch = []
-            for i, (samples, labels) in enumerate(test_dataloader):
-                
-                samples = samples.permute(0, 2, 1)
-                samples = samples.type(torch.float32)
-                samples = samples.to(device)
+        testing_loss_per_batch = []
+        testing_accuracy_per_batch = []
+        for i, (samples, labels) in enumerate(test_dataloader):
+            
+            samples = samples.permute(0, 2, 1)
+            samples = samples.type(torch.float32)
+            samples = samples.to(device)
 
-                labels = labels.type(torch.float32)
-                labels = labels.to(device)
-                model.to(device)
+            labels = labels.type(torch.float32)
+            labels = labels.to(device)
 
-                predicted = model(samples)
-                loss = criterion(predicted, labels)
-                testing_loss_per_batch.append(loss.item())
+            predicted = model(samples)
+            loss = criterion(predicted, labels)
+            testing_loss_per_batch.append(loss.item())
 
-                predicted = (predicted > 0.5).float()
-                common_predictions = predicted * labels
-                batch_accuracy = torch.sum(common_predictions, axis=0) / len(predicted)
-                testing_accuracy_per_batch.append(batch_accuracy.item())
+            predicted = (predicted > 0.5).float()
+            common_predictions = predicted * labels
+            batch_accuracy = torch.sum(common_predictions, axis=0) / len(predicted)
+            testing_accuracy_per_batch.append(batch_accuracy.item())
 
-            test_loss = sum(testing_loss_per_batch) / len(testing_loss_per_batch)
-            test_log['testing_loss_per_epoch'].append(test_loss)
-            test_accuracy = sum(testing_accuracy_per_batch) / len(testing_accuracy_per_batch)
-            print('Test Accuracy', test_accuracy)
-            test_log['testing_accuracy_per_epoch'].append(test_accuracy)
-
-    return test_log
+        test_loss = sum(testing_loss_per_batch) / len(testing_loss_per_batch)
+        print('Test Loss', test_loss)
+        test_log['testing_loss_per_epoch'].append(test_loss)
+        test_accuracy = sum(testing_accuracy_per_batch) / len(testing_accuracy_per_batch)
+        print('Test Accuracy', test_accuracy)
+        print('\n')
+        test_log['testing_accuracy_per_epoch'].append(test_accuracy)
 
 # call the methods to train and test the model 
-train_log = train_model()
-test_log = test_model('../4-saved/basset_params.pth')
+train_log, test_log = train_model()
+
+print(train_log)
+print(test_log)
 
 # plots the loss 
 def plot_loss(id, num_epochs, train_loss, test_loss):
@@ -219,7 +223,7 @@ def plot_loss(id, num_epochs, train_loss, test_loss):
     a.legend()
     info_text = '\n'.join([f'{key}: {value}' for key, value in settings.items()])
     plt.text(1, 4.5, info_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
-    plt.savefig(f'../3-viz/loss_curves_{id}')
+    plt.savefig(f'../3-viz/debug/3-11-debug/loss_curves_{id}')
  
 # plots the accuracy
 def plot_accuracy(id, num_epochs, train_accuracy, test_accuracy): 
@@ -233,7 +237,7 @@ def plot_accuracy(id, num_epochs, train_accuracy, test_accuracy):
     a.legend()
     info_text = '\n'.join([f'{key}: {value}' for key, value in settings.items()])
     plt.text(1, 4.5, info_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
-    plt.savefig(f'../3-viz/accuracy_curves_{id}')
+    plt.savefig(f'../3-viz/debug/3-11-debug/accuracy_curves_{id}')
 
 # call the loss function plotter 
 model_name, optim_name, batch_size = settings['model_name'], settings['optim_name'], settings['hyperparameters']['batch_size']

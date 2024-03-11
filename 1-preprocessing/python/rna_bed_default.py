@@ -16,6 +16,7 @@ sequence_length = args['sequence_length']
 
 # first, load in the gtf file 
 gr = pr.read_gtf(gtf_filepath)
+# df = pd.read_csv(gtf_filepath, sep='\t')
 
 # convert to pandas dataframe 
 df = gr.df

@@ -41,7 +41,7 @@ simple_config = {
         'padding': 0
     },
     'dropout': {
-        'probability': 0.3
+        'probability': 0.4
     }, 
     'fc1': {
         'out': 1500
@@ -54,29 +54,12 @@ simple_config = {
     }
 }
 
-# sacrifices spatial relationships, but probably a decent baseline to use  
-class FeedForwardNN(nn.Module):
-    def __init__(self): 
-        super(FeedForwardNN, self).__init__()
-        self.layer1 = nn.Linear(in_features=2400, out_features=1000, bias=True)
-        self.layer2 = nn.Linear(in_features=1000, out_features=10, bias=True)
-        self.layer3 = nn.Linear(in_features=10, out_features=1)
-    def forward(self, x): 
-        x = x.reshape((1,2400))
-        x = self.layer1(x)
-        x = F.relu(x)
-        x = self.layer2(x)
-        x = F.relu(x)
-        x = self.layer3(x)
-        x = F.sigmoid(torch.tensor(torch.flatten(x), dtype=torch.float32, requires_grad=True))
-        return x
-
 model_config = {
     'DeepChrome': SimpleCNN(simple_config),  
     'MLP': FeedForwardNN()
 }
 
-def populate_settings(train_filepath, test_filepath, seqlen, loss, optim, model_type): 
+def populate_settings(train_filepath, test_filepath, seqlen, loss, optim, model_type, batch_size): 
     data_config = {
         'train': train_filepath, 
         'test': test_filepath, 
@@ -85,7 +68,7 @@ def populate_settings(train_filepath, test_filepath, seqlen, loss, optim, model_
     hyperparameter_config = {
         'learning_rate': 0.001, 
         'num_epochs': 50, 
-        'batch_size': 256
+        'batch_size': batch_size
     }
     optim_config = {
         'Adam': torch.optim.Adam(model_config[model_type].parameters(), lr=hyperparameter_config['learning_rate']), 
