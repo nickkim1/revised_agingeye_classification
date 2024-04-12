@@ -51,13 +51,11 @@ class CustomDataset(Dataset):
         self.n_samples = n_samples
         self.features = []
         self.labels = []
-        # iterate over all the training samples
-        for i in range(self.n_samples): 
+        for i in range(self.n_samples): # iterate over all the training samples
             s = np.zeros([sequence_length, 4]) 
             sequence = dataset[0][i]
             label = dataset[1][i]
-            # iterate over each base within the sequence for that training example 
-            for j in range(sequence_length): 
+            for j in range(sequence_length): # iterate over each base within the sequence for that training example 
                 base_at_jth_position = self.one_hot_encode(0, sequence[j]) # one hot encode sequences as: A T C G (top -> bottom)
                 s[j][base_at_jth_position] = 1
             self.features.append(s)
@@ -119,14 +117,8 @@ def train_model():
         t_accuracy_per_batch = []
 
         for i, (samples, labels) in enumerate(train_dataloader): 
-
-            # tranpose the sample so its (batch_size, 4, 600) for input into the model
-            samples = samples.permute(0, 2, 1)
+            samples = samples.permute(0, 2, 1)  # tranpose the sample so its (batch_size, 4, 600) for input into the model
             samples = samples.type(torch.float32) # send the samples to the device
-
-            # if epoch % 2 == 1: 
-            #     samples = data_aug.reverse_complement_sequence(data_aug, samples)
-
             samples = samples.to(device)
 
             # assume the first row is the labels? 
@@ -208,9 +200,6 @@ def test_model(PATH, test_log):
 # call the methods to train and test the model 
 train_log, test_log = train_model()
 
-print(train_log)
-print(test_log)
-
 # plots the loss 
 def plot_loss(id, num_epochs, train_loss, test_loss):
     f, a = plt.subplots(figsize=(10,7.5), layout='constrained') # don't need to specify 2x2 or anything here, bc i'm just going to plot the loss 
@@ -223,7 +212,7 @@ def plot_loss(id, num_epochs, train_loss, test_loss):
     a.legend()
     info_text = '\n'.join([f'{key}: {value}' for key, value in settings.items()])
     plt.text(1, 4.5, info_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
-    plt.savefig(f'../3-viz/debug/3-11-debug/loss_curves_{id}')
+    plt.savefig(f'../3-viz/debug/4-11-debug/loss_curves_{id}')
  
 # plots the accuracy
 def plot_accuracy(id, num_epochs, train_accuracy, test_accuracy): 
@@ -237,7 +226,7 @@ def plot_accuracy(id, num_epochs, train_accuracy, test_accuracy):
     a.legend()
     info_text = '\n'.join([f'{key}: {value}' for key, value in settings.items()])
     plt.text(1, 4.5, info_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
-    plt.savefig(f'../3-viz/debug/3-11-debug/accuracy_curves_{id}')
+    plt.savefig(f'../3-viz/debug/4-11-debug/accuracy_curves_{id}')
 
 # call the loss function plotter 
 model_name, optim_name, batch_size = settings['model_name'], settings['optim_name'], settings['hyperparameters']['batch_size']

@@ -13,7 +13,7 @@ import numpy as np
 import time as time
 import argparse as ap
 import data_aug as aug
-from models import SimpleCNN, FeedForwardNN
+from models import SimpleCNN, FeedForwardNN, BassetCNN
 
 # TODO: convert this to some sort of JSON format or something idk 
 
@@ -56,7 +56,8 @@ simple_config = {
 
 model_config = {
     'DeepChrome': SimpleCNN(simple_config),  
-    'MLP': FeedForwardNN()
+    'MLP': FeedForwardNN(),
+    'Basset': BassetCNN()
 }
 
 def populate_settings(train_filepath, test_filepath, seqlen, loss, optim, model_type, batch_size): 

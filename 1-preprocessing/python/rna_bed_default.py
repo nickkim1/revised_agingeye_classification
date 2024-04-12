@@ -50,9 +50,8 @@ tss_df = pd.DataFrame({
 # protocol: 
     # we generically generated tss starts/ends from every gene in the D. melanogaster genome
     # now, we need to check for matching gene ID across the generic DF + each DF from each timepoint in excel file to assign the right counts
-
-# now, we need to read in the counts matrix and just find matching gene names
-# the principle is that because we read in the GTF, we have a reference dataset that we can essentially use to map TSS start/end bounds to counts
+    # now, we need to read in the counts matrix and just find matching gene names
+    # the principle is that because we read in the GTF, we have a reference dataset that we can essentially use to map TSS start/end bounds to counts
 
 counts_df = pd.read_csv(filepath_or_buffer=counts_filepath, sep='\t')
 
